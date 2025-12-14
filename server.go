@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gnet/bot"
 	"gnet/client"
 )
 
@@ -13,5 +14,6 @@ var (
 
 func main() {
 	go client.ClientListener(IP, CLIENT_PORT)
+	go bot.BotListener(IP, BOT_PORT)
 	select {}
 }

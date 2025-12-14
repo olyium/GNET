@@ -127,6 +127,8 @@ func ClientHandler(Connection net.Conn) {
 
 	for {
 
+		Writer.WriteString("\033]0;GNET\a")
+		Writer.Flush()
 		Writer.WriteString("\033[2J\033[H")
 		Writer.Flush()
 		WriterBanner(*Writer)
