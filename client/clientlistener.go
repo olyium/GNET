@@ -7,20 +7,19 @@ import (
 
 func ClientListener(IP string, PORT string) {
 
-	ClientListener, ERR := net.Listen("tcp", fmt.Sprintf("%s:%s", IP, PORT))
-	if ERR != nil {
-		fmt.Print("failed to start client listener\n")
+	Listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", IP, PORT))
+	if err != nil {
+		fmt.Println("failed to start client listener")
+		return
 	}
 
-	fmt.Print("client listening on ", ClientListener.Addr(), "\n")
+	fmt.Println("client listening on", Listener.Addr())
 
 	for {
-		Connection, ERR := ClientListener.Accept()
-		if ERR != nil {
-			fmt.Print("failed to accept connection from client\n")
+		Connection, err := Listener.Accept()
+		if err != nil {
+			continue
 		}
-		fmt.Print("new client connection\n")
-		go ClientLoginHandler(Connection)
+		go ClientHandler(Connection)
 	}
-
 }

