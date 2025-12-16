@@ -1,32 +1,148 @@
-# GNET Official readme.MD
+# GNET
 
-_Disclaimed:_ **GNET is an open source, C2, meant for the soul purpose, of ethical researching, and educational development. The developers of GNET, do not claim your actions, that you commit towards, whilst using GNET. You MUST, follow the laws of your jursidiction, failure to do so can result in life changing crimminal charges.**
+**Disclaimer**
+
+GNET is an open-source command-and-control (C2) framework intended **solely** for ethical research, defensive security testing, and educational development.
+
+The developers of GNET **do not** condone or take responsibility for misuse. You are **required** to comply with all applicable local, state, and federal laws. Misuse may result in severe criminal penalties.
+
+---
 
 ## Requirements
 
-- Golang 1.25.4
-- Windows/Linux OS
+* Go **1.25.4** or newer
+* Windows or Linux
 
-## Setup
+---
 
-1. Install Golang:
-**Ubuntu/Debian**: ```bash
-sudo apt update && sudo snap install go --classic```
-**Kali Linux**: ```bash
-sudo apt update && sudo apt install golang -y```
-**RHEL / Rocky / AlmaLinux / CentOS Stream 8 / 9**: ```bash
-sudo dnf check-update && sudo dnf install golang -y```
-**Alpine Linux**: ```bash
-sudo apk update && sudo apk add go```
-**Windows 10/11 / Linux / Mac**: ```bash
-https://go.dev/doc/install```
+## Installation
 
-2. Configure Server:
-Locate **server.go** ```./server.go```, then within the variable, there is an IP. Change this IP, to your VPS's IP, or which IP the host is. Then locate the compiles folder ```./bins/compiles```, within here you will find **bot.go**. Open **bot.go** and do the same with the IP located in **bot.go**
+### 1. Install Go
 
-3. Launch Server:
-Go back to the main directory, and build the server. ```go build server.go```. Once the build is succesfull you want to run (if you're on Linux) ```chmod +x server``` then you want to run the server. (if you're on Linux) ```./server &```, (if you're on Windows) ```server &```
+Choose the instructions for your operating system.
 
-## Adding Accounts
+**Ubuntu / Debian**
 
-1. Locate ```./data/users.json```. Then you simply, follow the file structure. Add user, and pass.
+```bash
+sudo apt update && sudo snap install go --classic
+```
+
+**Kali Linux**
+
+```bash
+sudo apt update && sudo apt install golang -y
+```
+
+**RHEL / Rocky / AlmaLinux / CentOS Stream 8/9**
+
+```bash
+sudo dnf check-update && sudo dnf install golang -y
+```
+
+**Alpine Linux**
+
+```bash
+sudo apk update && sudo apk add go
+```
+
+**Windows / macOS / Linux (official installer)**
+
+```
+https://go.dev/doc/install
+```
+
+Verify installation:
+
+```bash
+go version
+```
+
+---
+
+## Configuration
+
+### 2. Server Configuration
+
+1. Open `server.go` in the project root.
+2. Locate the server IP variable.
+3. Replace the value with the public IP or hostname of your VPS or host machine.
+
+### 3. Bot Configuration
+
+1. Navigate to:
+
+   ```
+   ./bins/compiles/bot.go
+   ```
+2. Locate the IP variable used by the bot.
+3. Set it to the **same IP or hostname** configured in `server.go`.
+
+The server and bot **must** point to the same address to communicate correctly.
+
+---
+
+## Building and Running
+
+### 4. Build the Server
+
+From the project root:
+
+```bash
+go build server.go
+```
+
+### 5. Run the Server
+
+**Linux**
+
+```bash
+chmod +x server
+./server &
+```
+
+**Windows**
+
+```bash
+server
+```
+
+The server will now listen for incoming bot connections.
+
+---
+
+## User Management
+
+### Adding Accounts
+
+1. Open the following file:
+
+   ```
+   ./data/users.json
+   ```
+2. Follow the existing JSON structure.
+3. Add a new username and password entry.
+
+Example structure:
+
+```json
+{
+  "user": "username",
+  "pass": "password"
+}
+```
+
+Save the file after making changes. New accounts take effect immediately on the next authentication attempt.
+
+---
+
+## Notes
+
+* This project is intended for controlled environments only.
+* Do **not** expose the server to the public internet without proper safeguards.
+* Always obtain explicit authorization before testing any system.
+
+---
+
+## License
+
+Open source. Use responsibly.
